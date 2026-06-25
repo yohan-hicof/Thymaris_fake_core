@@ -1,0 +1,17 @@
+{
+  "contents": [
+    {"I_FUNCTION_CHECK:VALID": "HICOF_ORIGINAL"},
+    {"I_FUNCTION_CHECK:INVALID": "HICOF_COUNTERFEIT"},
+    {"I_FUNCTION_CHECK:NULL": "HICOF_UNSURE"},
+    {"L_FUNCTION_CHECK:VALID": "HICOF_ORIGINAL"},
+    {"L_FUNCTION_CHECK:INVALID": "HICOF_COUNTERFEIT"},
+    {"L_FUNCTION_CHECK:NULL": "HICOF_UNSURE"}
+  ],
+  "postgres_login": "postgres",
+  "postgres_password": "postgres",
+  "postgres_database": "postgres",
+  "postgres_ip": "127.0.0.1",
+  "postgres_port": "5432"
+}
+
+
