@@ -14,24 +14,7 @@ on:
           - 'ubuntu-20.04'
           - 'ubuntu-22.04'
           - 'ubuntu-24.04'
-          - 'ubuntu-26.04'
-      halcon_version:
-        description: 'Halcon Version'
-        required: true
-        default: '24.11.2.0'
-        type: choice
-        options:
-          - '24.11.2.0'
-          - '18.11.4.0'
-      arenasdk_version:
-        description: 'ArenaSDK Version'
-        required: true
-        default: '0.1.91'
-        type: choice
-        options:
-          - '0.1.38'
-          - '0.1.91'
-          - '1.0.8.60'
+          - 'ubuntu-26.04'      
       version:
         description: 'Release Version (without v prefix). E.g. 1.0.0'
         required: true
@@ -61,15 +44,6 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Verify Halcon package tag
-        run: |
-          if oras repo tags ghcr.io/hicof/halcon-libs | grep -Fxq "${{ inputs.halcon_version }}"; then
-            echo "Tag ${{ inputs.halcon_version }} exists."
-          else
-            echo "Error: Tag ${{ inputs.halcon_version }} does not exist in ghcr.io/hicof/halcon-libs"
-            exit 1
-          fi
       
       - name: Build C program in Docker container
         run: |
