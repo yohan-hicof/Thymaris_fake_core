@@ -1,0 +1,9 @@
+services:
+  tsc-cmake-devel:
+    image: ghcr.io/hicof/tsc-cmake-dev-${ARCHITECTURE:-ubuntu-24.04}:latest
+    pull_policy: always
+    # container_name: tsc-cmake-devel-${ARCHITECTURE:-ubuntu-24.04}
+    tty: true
+    volumes:
+      - ../:/workspace
+      - ${HALCON_INSTALL_DIR:-/opt/halcon}:/opt/halcon:ro
