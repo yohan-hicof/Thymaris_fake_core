@@ -1,18 +1,24 @@
-This software is a fake one.
-The goal is to test the Thymaris Cellphone app.
+This software is a fake one. The goal is to imitate the behavior of Thymaris_core to test the Thymaris Cellphone app.
+
 This software is called the same way the Thymaris core software is called when we want to compare an image.
-Then it read the signature, and answer accordingly.
-It mimics Thymaris Core software without actually processing anything.
+Then it read the signature, and answer accordingly. It mimics Thymaris Core software without actually processing anything.
 
-It will look for a fixed json file, supposed to be in the same folder and adapt its behavior according to this json.
+It opens a fixed json file: Thymaris_fake_core.json, supposed to be in the same folder and adapt its behavior according to this json.
 
-On the side, this software will update the local DB to avoid having this code blacklisted due to their expected high number of scans.
+This software also update the local DB to avoid having this code blacklisted due to their expected high number of scans.
 
-The signature needs to be a valid signature, so it needs to contain the soft version, and I need to separate the version
-from the content (expected return)
 
-The normal call of the Thymaris core software:
-DM_find_i_R_0.85 -C -i /path/to/image.png -s SIGNATURE
+The normal call of the Thymaris core software:`DM_find_i_R_0.85 -C -i /path/to/image.png -s SIGNATURE`. This software can take the same
+call, however, it will only looks for the `-s SIGNATURE` part and discards the rest.
+
+When called with `-add`, it will add/update to the `signature` table the serialnumber/signature found in the json file.
+
+The two main DB queries are:
+
+`INSERT INTO signatures (serialnumber, signature) VALUES ($1::text, $2::text) ON CONFLICT (serialnumber) DO UPDATE SET signature = EXCLUDED.signature;`
+
+`UPDATE request_history SET metadata=(metadata::jsonb || '{\"scan_count\":0}'::jsonb) WHERE identifier IN (xxx, yyy)";`
+
 
 Expected output:
   - Date time (cerr)
@@ -23,29 +29,33 @@ Expected output:
 
 
 Content of the json:
+```
 {
-    "signatures": [
-       {"sign1": "original"}
-       {"sign2": "counterfeit"}
-       {"sign3": "unsure"}
-       {"sign4": -1}
-    ]
+    "contents": [
+        {"I_FUNCTION_CHECK:VALID": "HICOF_ORIGINAL"},
+        {"I_FUNCTION_CHECK:INVALID": "HICOF_COUNTERFEIT"},
+        {"I_FUNCTION_CHECK:NULL": "HICOF_UNSURE"},
+        {"L_FUNCTION_CHECK:VALID": "HICOF_ORIGINAL"},
+        {"L_FUNCTION_CHECK:INVALID": "HICOF_COUNTERFEIT"},
+        {"L_FUNCTION_CHECK:NULL": "HICOF_UNSURE"}
+    ],
     "postgres_login": "postgres",
     "postgres_password": "postgres",
     "postgres_database": "postgres",
     "postgres_ip": "127.0.0.1",
     "postgres_port": "5432"
 }
-
+```
 ---
 Here is the list of Base64 signatures:
+```
 Zl9jXzAuMDBJX0ZVTkNUSU9OX0NIRUNLLVZBTElE
 Zl9jXzAuMDBJX0ZVTkNUSU9OX0NIRUNLOklOVkFMSUQ=
 Zl9jXzAuMDBJX0ZVTkNUSU9OX0NIRUNLOk5VTEw=
 Zl9jXzAuMDBMX0ZVTkNUSU9OX0NIRUNLLVZBTElE
 Zl9jXzAuMDBMX0ZVTkNUSU9OX0NIRUNLOklOVkFMSUQ=
 Zl9jXzAuMDBMX0ZVTkNUSU9OX0NIRUNLOk5VTEw=
-
+```
 ---
 
 
