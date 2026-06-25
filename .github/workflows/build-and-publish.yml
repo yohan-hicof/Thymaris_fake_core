@@ -1,0 +1,103 @@
+name: Build and Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      ubuntu_version:
+        description: 'Ubuntu Version'
+        required: true
+        default: 'ubuntu-24.04'
+        type: choice
+        options:
+          - 'ubuntu-16.04'
+          - 'ubuntu-18.04'
+          - 'ubuntu-20.04'
+          - 'ubuntu-22.04'
+          - 'ubuntu-24.04'
+          - 'ubuntu-26.04'
+      halcon_version:
+        description: 'Halcon Version'
+        required: true
+        default: '24.11.2.0'
+        type: choice
+        options:
+          - '24.11.2.0'
+          - '18.11.4.0'
+      arenasdk_version:
+        description: 'ArenaSDK Version'
+        required: true
+        default: '0.1.91'
+        type: choice
+        options:
+          - '0.1.38'
+          - '0.1.91'
+          - '1.0.8.60'
+      version:
+        description: 'Release Version (without v prefix). E.g. 1.0.0'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install ORAS
+        run: |
+          ORAS_VERSION="1.3.2"
+          wget "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+          tar -xzf oras_${ORAS_VERSION}_linux_amd64.tar.gz
+          sudo mv oras /usr/local/bin/
+          rm oras_${ORAS_VERSION}_linux_amd64.tar.gz
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Verify Halcon package tag
+        run: |
+          if oras repo tags ghcr.io/hicof/halcon-libs | grep -Fxq "${{ inputs.halcon_version }}"; then
+            echo "Tag ${{ inputs.halcon_version }} exists."
+          else
+            echo "Error: Tag ${{ inputs.halcon_version }} does not exist in ghcr.io/hicof/halcon-libs"
+            exit 1
+          fi
+      
+      - name: Build C program in Docker container
+        run: |
+          # Generate the release tag / name
+          RELEASE_TAG="${{ inputs.ubuntu_version }}-halcon-${{ inputs.halcon_version }}-arenasdk-${{ inputs.arenasdk_version }}-v${{ inputs.version }}"
+          
+          # Use docker compose run to build the project, passing architecture and Halcon path as env variables
+          ARCHITECTURE="${{ inputs.ubuntu_version }}" \
+          HALCON_INSTALL_DIR="$HALCON_INSTALL_DIR" \
+          ARENASDK_INSTALL_DIR="$ARENASDK_INSTALL_DIR" \
+          docker compose -f docker/docker-compose.yml run --rm -w /workspace tsc-cmake-devel \
+            bash -c "mkdir -p build && cd build && cmake -DAPP_VERSION=\"${RELEASE_TAG}\" .. && make"
+
+      - name: Fix build directory permissions
+        run: sudo chown -R $(id -u):$(id -g) build/
+        
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Generate the release tag / name
+          RELEASE_TAG="${{ inputs.ubuntu_version }}-v${{ inputs.version }}"
+          
+          # The binary is named Thymaris_fake_core
+          # Append the architecture and tag number to the filename
+          cp build/Thymaris_fake_core "build/Thymaris_fake_core-${RELEASE_TAG}"
+          
+          # Create github release and attach the binary
+          gh release create "${RELEASE_TAG}" "build/Thymaris_fake_core-${RELEASE_TAG}" --title "${RELEASE_TAG}" --generate-notes
+
+          
